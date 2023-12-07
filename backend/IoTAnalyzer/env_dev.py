@@ -45,6 +45,7 @@ def set_env():
     r.set("ANALYZER_RAM_THRESHOLD", "90")
     r.set("ANALYZER_ACTIVE_DISTRIBUTED", "true")
     r.set("ANALYZER_ACTIVE_DISTRIBUTED_RECEIVE", "true")
+    r.set("ANALYZER_IP_LOCAL", "192.168.10.170")
     r.set("CENTER_HOST", "http://222.252.29.85:17774")
     r.set("CENTER_ELASTIC", "http://222.252.29.85:17772")
     r.set("CENTER_REDIS_HOST", "222.252.29.85")

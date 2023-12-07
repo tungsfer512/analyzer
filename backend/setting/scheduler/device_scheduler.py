@@ -10,8 +10,8 @@ def start():
     print('start scheduler interval time:', sec, type(sec))
     scheduler.add_job(send_cpu_ram_to_local_elastic, "interval", seconds = sec, id = "send_cpu_ram_to_local_elastic", replace_existing = True, timezone="Asia/Ho_Chi_Minh")
     scheduler.add_job(send_cpu_ram_to_local_redis, "interval", seconds = sec, id = "send_cpu_ram_to_local_redis", replace_existing = True, timezone="Asia/Ho_Chi_Minh")
-    # scheduler.add_job(send_cpu_ram_to_center_elastic, "interval", seconds = sec, id = "send_cpu_ram_to_center_elastic", replace_existing = True, timezone="Asia/Ho_Chi_Minh")
-    # scheduler.add_job(send_cpu_ram_to_center_redis, "interval", seconds = sec, id = "send_cpu_ram_to_center_redis", replace_existing = True, timezone="Asia/Ho_Chi_Minh")
+    scheduler.add_job(send_cpu_ram_to_center_elastic, "interval", seconds = sec, id = "send_cpu_ram_to_center_elastic", replace_existing = True, timezone="Asia/Ho_Chi_Minh")
+    scheduler.add_job(send_cpu_ram_to_center_redis, "interval", seconds = sec, id = "send_cpu_ram_to_center_redis", replace_existing = True, timezone="Asia/Ho_Chi_Minh")
     print(scheduler.get_jobs())
     scheduler.start()
 

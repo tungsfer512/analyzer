@@ -4189,6 +4189,7 @@ def send_cpu_ram_to_center_elastic():
         doc = {
             "cpu": used_cpu * 100,
             "ram": used_ram * 100,
+            "analyzer_ip": get_env("ANALYZER_IP_LOCAL", "127.0.0.1"),
             "timestamp": datetime.now() - delta_7h
         }
         print("==============send_cpu_ram_to_center_elastic==============","cpu:", used_cpu, "ram:", used_ram)
@@ -4204,9 +4205,13 @@ def send_cpu_ram_to_center_redis():
         used_ram = round(psutil.virtual_memory()[2]/100,4)
         used_cpu = round(psutil.cpu_percent()/100,4)
         r = redis.Redis(host=get_env("CENTER_REDIS_HOST", "127.0.0.1"), port=int(get_env("CENTER_REDIS_PORT", 6379)), db=0)
+        doc = {
+            "cpu": used_cpu * 100,
+            "ram": used_ram * 100,
+        }
         print("==============send_cpu_ram_to_center_redis==============","cpu:", used_cpu, "ram:", used_ram)
-        r.set("cpu", used_cpu * 100)
-        r.set("ram", used_ram * 100)
+        redis_index = "cpu_ram_" + get_env("ANALYZER_IP_LOCAL", "127.0.0.1")
+        r.set(redis_index, json.dumps(doc))
     except Exception as e:
         logger.error(e)
 
