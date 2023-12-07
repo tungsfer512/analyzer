@@ -1,0 +1,6 @@
+backend/kc-static-files/build/file_config
+backend/kc-static-files/build/config.txt
+.idea
+/data_kc
+tmp/*.pcap
+!tmp/.gitkeep

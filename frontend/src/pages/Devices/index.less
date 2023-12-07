@@ -1,0 +1,16 @@
+.table {
+  tbody tr:hover {
+    cursor: pointer;
+    .renderLast {
+      cursor: default;
+    }
+  }
+  .renderLast {
+    float: right;
+  }
+
+  tr:last-child td {
+    width: 100%;
+    min-width: max-content;
+  }
+}

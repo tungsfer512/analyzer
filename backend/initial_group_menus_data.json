@@ -1,0 +1,66 @@
+[
+  {
+    "model": "group_menus.groupmenus",
+    "pk": 1,
+    "fields": {
+      "menu": 7,
+      "group": 1
+    }
+  },
+  {
+    "model": "group_menus.groupmenus",
+    "pk": 2,
+    "fields": {
+      "menu": 4,
+      "group": 1
+    }
+  },
+  {
+    "model": "group_menus.groupmenus",
+    "pk": 3,
+    "fields": {
+      "menu": 2,
+      "group": 1
+    }
+  },
+  {
+    "model": "group_menus.groupmenus",
+    "pk": 4,
+    "fields": {
+      "menu": 1,
+      "group": 1
+    }
+  },
+  {
+    "model": "group_menus.groupmenus",
+    "pk": 5,
+    "fields": {
+      "menu": 3,
+      "group": 1
+    }
+  },
+  {
+    "model": "group_menus.groupmenus",
+    "pk": 6,
+    "fields": {
+      "menu": 6,
+      "group": 1
+    }
+  },
+  {
+    "model": "group_menus.groupmenus",
+    "pk": 7,
+    "fields": {
+      "menu": 5,
+      "group": 1
+    }
+  },
+  {
+    "model": "group_menus.groupmenus",
+    "pk": 8,
+    "fields": {
+      "menu": 8,
+      "group": 1
+    }
+  }
+]

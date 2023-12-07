@@ -1,0 +1,119 @@
+// @import '~antd/dist/antd.css';
+@import '~antd/es/style/themes/default.less';
+
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+.colorWeak {
+  filter: invert(80%);
+}
+
+.ant-layout {
+  min-height: 100vh;
+}
+
+canvas {
+  display: block;
+}
+
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+@media (max-width: @screen-xs) {
+  .ant-table {
+    width: 100%;
+    overflow-x: auto;
+
+    &-thead>tr,
+    &-tbody>tr {
+
+      >th,
+      >td {
+        white-space: pre;
+
+        >span {
+          display: block;
+        }
+      }
+    }
+  }
+}
+
+// 兼容IE11
+@media screen and(-ms-high-contrast: active),
+(-ms-high-contrast: none) {
+  body .ant-design-pro>.ant-layout {
+    min-height: 100vh;
+  }
+}
+
+//Ant Motion
+.fade-enter {
+  opacity: 0;
+  animation-duration: .5s;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.55, 0, 0.55, 0.2);
+  animation-play-state: paused;
+}
+
+.fade-appear {
+  opacity: 0;
+  animation-duration: .5s;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.55, 0, 0.55, 0.2);
+  animation-play-state: paused;
+}
+
+.fade-leave {
+  animation-duration: .5s;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.55, 0, 0.55, 0.2);
+  animation-play-state: paused;
+}
+
+.fade-enter.fade-enter-active {
+  animation-name: fadeIn;
+  animation-play-state: running;
+}
+
+.fade-appear.fade-appear-active {
+  animation-name: fadeIn;
+  animation-play-state: running;
+}
+
+.fade-leave.fade-leave-active {
+  animation-name: fadeOut;
+  animation-play-state: running;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}

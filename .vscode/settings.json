@@ -1,0 +1,7 @@
+{
+    "files.watcherExclude": {
+        "**/target": true
+    },
+    "python.pythonPath": "/home/trunghieu/.local/share/virtualenvs/iot-analyzer-api-VnGFba0N/bin/python",
+    "python.formatting.provider": "black"
+}

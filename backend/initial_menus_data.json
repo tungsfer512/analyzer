@@ -1,0 +1,74 @@
+[
+  {
+    "model": "menus.menus",
+    "pk": 1,
+    "fields": {
+      "name": "Trang chủ",
+      "code": "DASHBOARD",
+      "code_parent": "NULL"
+    }
+  },
+  {
+    "model": "menus.menus",
+    "pk": 2,
+    "fields": {
+      "name": "Quản lý thiết bị",
+      "code": "QUAN_LY_THIET_BI",
+      "code_parent": "NULL"
+    }
+  },
+  {
+    "model": "menus.menus",
+    "pk": 3,
+    "fields": {
+      "name": "Chi tiết thiết bị",
+      "code": "CHI_TIET_THIET_BI",
+      "code_parent": "QUAN_LY_THIET_BI"
+    }
+  },
+  {
+    "model": "menus.menus",
+    "pk": 4,
+    "fields": {
+      "name": "Quản lý người dùng",
+      "code": "QUAN_LY_NGUOI_DUNG",
+      "code_parent": "NULL"
+    }
+  },
+  {
+    "model": "menus.menus",
+    "pk": 5,
+    "fields": {
+      "name": "Danh sách người dùng",
+      "code": "DANH_SACH_NGUOI_DUNG",
+      "code_parent": "QUAN_LY_NGUOI_DUNG"
+    }
+  },
+  {
+    "model": "menus.menus",
+    "pk": 6,
+    "fields": {
+      "name": "Danh sách nhóm người dùng",
+      "code": "DANH_SACH_NHOM_NGUOI_DUNG",
+      "code_parent": "QUAN_LY_NGUOI_DUNG"
+    }
+  },
+  {
+    "model": "menus.menus",
+    "pk": 7,
+    "fields": {
+      "name": "Cảnh báo",
+      "code": "CANH_BAO",
+      "code_parent": "NULL"
+    }
+  },
+  {
+    "model": "menus.menus",
+    "pk": 8,
+    "fields": {
+      "name": "Cài đặt",
+      "code": "CAI_DAT",
+      "code_parent": "NULL"
+    }
+  }
+]

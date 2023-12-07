@@ -1,0 +1,143 @@
+version: "3.5"
+
+services:
+  sftp:
+    image: atmoz/sftp
+    volumes:
+        - ./server/upload:/home/foo/upload
+    ports:
+        - "2222:22"
+    command: foo:pass:1001
+    # network_mode: "host"
+    networks:
+      iotanalyzer: null
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana-oss
+    container_name: grafana
+    depends_on:
+      - db
+    ports:
+      - 3000:3000
+    environment:
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+    volumes:
+      - /data_kc/grafana_data:/var/lib/grafana
+    user: "$UID:$GID"
+    # network_mode: "host"
+    networks:
+      iotanalyzer: null
+    restart: unless-stopped
+
+  elasticsearch:
+    container_name: es-container
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.6.2
+    volumes:
+      - /data_kc/elasticsearch_data:/usr/share/elasticsearch/data
+    environment:
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1G -Xmx1G"
+      - xpack.security.enabled=false
+      - "discovery.type=single-node"
+    ports:
+      - 9200:9200
+    # network_mode: "host"
+    networks:
+      iotanalyzer: null
+    restart: always
+    deploy:
+      resources:
+          limits:
+            memory: 4GB  # Use at most 50 MB of RAM
+  kibana:
+    container_name: kb-container
+    image: docker.elastic.co/kibana/kibana:8.6.2
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es-container:9200
+    depends_on:
+      - elasticsearch
+    ports:
+      - 5601:5601
+    # network_mode: "host"
+    networks:
+      iotanalyzer: null
+    restart: unless-stopped
+
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    # network_mode: "host"
+    networks:
+      iotanalyzer: null
+    restart: unless-stopped
+
+  db:
+    container_name: postgres_container_kc
+    image: postgres
+    env_file:
+      - ./backend/.env.db
+    volumes:
+      - /data_kc/postgres_analyzer_data:/data/postgres
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    # network_mode: "host"
+    networks:
+      iotanalyzer: null
+
+  backend:
+    build:
+      context: ./backend
+      args:
+        DJANGO_ALLOWED_HOSTS: "*"
+        DJANGO_SECRET_KEY: "*"
+        DJANGO_CORS_ORIGIN_WHITELIST: "*"
+    command: bash -c "python manage.py runserver 0.0.0.0:8080"
+    volumes:
+      - ./backend:/backend
+      - /home/kc-iot/pcap_save:/backend/pcap_save
+    env_file:
+      - ./backend/.env.dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+      - db
+    # links:
+    #   - db:db
+    #   - redis:redis
+    restart: unless-stopped
+    network_mode: "host"
+    # networks:
+    #   iotanalyzer: null
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        API_URL: "http://192.168.1.58:8008"
+    ports:
+      - 8000:8000
+    environment:
+      - REACT_APP_HOST_IP_ADDRESS=http://192.168.1.58:8008
+    volumes:
+      - ./frontend/src:/frontend/src
+      - ./frontend/config:/frontend/config
+    # network_mode: "host"
+    networks:
+      iotanalyzer: null
+    restart: always
+
+volumes:
+  postgres_analyzer_data: null
+  postgres_db: null
+  pgadmin: null
+  build_folder: null
+
+networks:
+  iotanalyzer:
+    driver: bridge

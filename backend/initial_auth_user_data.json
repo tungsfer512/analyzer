@@ -1,0 +1,26 @@
+[
+  {
+    "model": "auth_user.authuser",
+    "pk": 1,
+    "fields": {
+      "password": "pbkdf2_sha256$216000$MQgDal1ua8X1$GI4IvvbTUwZ+pdQac+noWRY+PWsoDzPqmNNTU9KDrKM=",
+      "last_login": "2022-03-13T06:59:02.888Z",
+      "is_superuser": true,
+      "username": "tomcat",
+      "first_name": "",
+      "last_name": "",
+      "email": "tomcat@gmail.com",
+      "is_staff": true,
+      "is_active": true,
+      "date_joined": "2022-03-13T06:55:05.058Z"
+    }
+  },
+  {
+    "model": "auth_user.authtokentoken",
+    "pk": "3d6fc6dc483ea7e91c6070bcb5504e3bda1ab013",
+    "fields": {
+      "created": "2022-03-13T06:55:10.265Z",
+      "user": 1
+    }
+  }
+]
