@@ -39,7 +39,7 @@ def set_env():
     r.set("ANALYZER_PCAP_NUMBER", "1000")
     r.set("ANALYZER_PCAP_THREAD_NUMBER", "10")
     r.set("ANALYZER_ELASTIC_INDEX", "cpu_ram")
-    r.set("ANALYZER_INF", "wlp7s0")
+    r.set("ANALYZER_INF", "ens160")
     r.set("ANALYZER_RAM_CPU_SECONDS", "10")
     r.set("ANALYZER_CPU_THRESHOLD", "90")
     r.set("ANALYZER_RAM_THRESHOLD", "90")
