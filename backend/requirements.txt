@@ -108,3 +108,4 @@ aspose-words==23.2.0
 elasticsearch==8.6.2
 paramiko==2.7.2
 redis
+psutil
