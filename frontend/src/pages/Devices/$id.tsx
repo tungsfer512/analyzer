@@ -783,28 +783,28 @@ const Device = ({
           <Descriptions.Item label="CPU">
             <Animate showProp="show" transitionName="fade">
               <Div show={show} className="code-box-shape">
-                <iframe src={`${DashboardBlank}d-solo/000000029/demo-kc?orgId=1&from=now-5m&to=now&refresh=5s&var-Interval=%24__auto_interval_Interval&var-device_id=device_id%7C%3D%7C${idDevice}&panelId=66`} frameborder="0" style={{ width: '100%', height: '100%' }} ></iframe>
+                <iframe src={`${DashboardBlank}/d-solo/000000029/demo-kc?orgId=1&from=now-5m&to=now&refresh=5s&var-Interval=%24__auto_interval_Interval&var-device_id=device_id%7C%3D%7C${idDevice}&panelId=66`} frameborder="0" style={{ width: '100%', height: '100%' }} ></iframe>
               </Div>
             </Animate>
           </Descriptions.Item>
           <Descriptions.Item label="Receive bytes" span={2}>
             <Animate showProp="show" transitionName="fade">
               <Div show={show} className="code-box-shape">
-                <iframe src={`${DashboardBlank}d-solo/000000029/demo-kc?orgId=1&from=now-5m&to=now&refresh=5s&var-Interval=%24__auto_interval_Interval&var-device_id=device_id%7C%3D%7C${idDevice}&panelId=71`} frameborder="0" style={{ width: '100%', height: '100%' }} ></iframe>
+                <iframe src={`${DashboardBlank}/d-solo/000000029/demo-kc?orgId=1&from=now-5m&to=now&refresh=5s&var-Interval=%24__auto_interval_Interval&var-device_id=device_id%7C%3D%7C${idDevice}&panelId=71`} frameborder="0" style={{ width: '100%', height: '100%' }} ></iframe>
               </Div>
             </Animate>
           </Descriptions.Item>
           <Descriptions.Item label="Ram">
             <Animate showProp="show" transitionName="fade">
               <Div show={show} className="code-box-shape">
-                <iframe src={`${DashboardBlank}d-solo/000000029/demo-kc?orgId=1&from=now-5m&to=now&refresh=5s&var-Interval=%24__auto_interval_Interval&var-device_id=device_id%7C%3D%7C${idDevice}&panelId=67`} frameborder="0" style={{ width: '100%', height: '100%' }} ></iframe>
+                <iframe src={`${DashboardBlank}/d-solo/000000029/demo-kc?orgId=1&from=now-5m&to=now&refresh=5s&var-Interval=%24__auto_interval_Interval&var-device_id=device_id%7C%3D%7C${idDevice}&panelId=67`} frameborder="0" style={{ width: '100%', height: '100%' }} ></iframe>
               </Div>
             </Animate>
           </Descriptions.Item>
           <Descriptions.Item label="Transmit bytes" span={2}>
             <Animate showProp="show" transitionName="fade">
               <Div show={show} className="code-box-shape">
-                <iframe src={`${DashboardBlank}d-solo/000000029/demo-kc?orgId=1&from=now-5m&to=now&refresh=5s&var-Interval=%24__auto_interval_Interval&var-device_id=device_id%7C%3D%7C${idDevice}&panelId=72`} frameborder="0" style={{ width: '100%', height: '100%' }} ></iframe>
+                <iframe src={`${DashboardBlank}/d-solo/000000029/demo-kc?orgId=1&from=now-5m&to=now&refresh=5s&var-Interval=%24__auto_interval_Interval&var-device_id=device_id%7C%3D%7C${idDevice}&panelId=72`} frameborder="0" style={{ width: '100%', height: '100%' }} ></iframe>
               </Div>
             </Animate>
           </Descriptions.Item>
@@ -913,7 +913,7 @@ const Device = ({
                     />
                   </Card> */}
                   <div style={{ height: '20rem' }}>
-                    <iframe src={`${DashboardBlank}d-solo/000000029/demo-kc?orgId=1&from=now-5m&to=now&refresh=5s&var-Interval=%24__auto_interval_Interval&var-device_id=device_id%7C%3D%7C${idDevice}&panelId=68`} frameborder="0" style={{ width: '100%', height: '100%' }} ></iframe>
+                    <iframe src={`${DashboardBlank}/d-solo/000000029/demo-kc?orgId=1&from=now-5m&to=now&refresh=5s&var-Interval=%24__auto_interval_Interval&var-device_id=device_id%7C%3D%7C${idDevice}&panelId=68`} frameborder="0" style={{ width: '100%', height: '100%' }} ></iframe>
                   </div>
                 </Col>
                 <Col xs={24} md={12}>
@@ -932,7 +932,7 @@ const Device = ({
                     />
                   </Card> */}
                   <div style={{ height: '20rem' }}>
-                    <iframe src={`${DashboardBlank}d-solo/000000029/demo-kc?orgId=1&from=now-5m&to=now&refresh=5s&var-Interval=%24__auto_interval_Interval&var-device_id=device_id%7C%3D%7C${idDevice}&panelId=70`} frameborder="0" style={{ width: '100%', height: '100%' }} ></iframe>
+                    <iframe src={`${DashboardBlank}/d-solo/000000029/demo-kc?orgId=1&from=now-5m&to=now&refresh=5s&var-Interval=%24__auto_interval_Interval&var-device_id=device_id%7C%3D%7C${idDevice}&panelId=70`} frameborder="0" style={{ width: '100%', height: '100%' }} ></iframe>
                   </div>
                 </Col>
                 <Col xs={24}>
@@ -951,7 +951,7 @@ const Device = ({
                     />
                   </Card> */}
                   <div style={{ height: '20rem' }}>
-                    <iframe src={`${DashboardBlank}d-solo/000000029/demo-kc?orgId=1&from=now-5m&to=now&refresh=5s&var-Interval=%24__auto_interval_Interval&var-device_id=device_id%7C%3D%7C${idDevice}&panelId=69`} frameborder="0" style={{ width: '100%', height: '100%' }} ></iframe>
+                    <iframe src={`${DashboardBlank}/d-solo/000000029/demo-kc?orgId=1&from=now-5m&to=now&refresh=5s&var-Interval=%24__auto_interval_Interval&var-device_id=device_id%7C%3D%7C${idDevice}&panelId=69`} frameborder="0" style={{ width: '100%', height: '100%' }} ></iframe>
                   </div>
                 </Col>
               </Row>
