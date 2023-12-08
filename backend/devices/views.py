@@ -4212,6 +4212,10 @@ def send_cpu_ram_to_center_redis():
         print("==============send_cpu_ram_to_center_redis==============","cpu:", used_cpu, "ram:", used_ram)
         redis_index = "cpu_ram_" + get_env("ANALYZER_IP_LOCAL", "127.0.0.1")
         r.set(redis_index, json.dumps(doc))
+        req = requests.get(url=f'{os.getenv("CENTER_HOST")}/get_best_analyzer')
+        data = req.json()
+        r.set("list_analyzer", json.dumps(data))
+        print(json.dumps(data), type(json.dumps(data)))
     except Exception as e:
         logger.error(e)
 
