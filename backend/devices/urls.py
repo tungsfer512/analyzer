@@ -54,15 +54,15 @@ urlpatterns = [
 #     path('review/',views.ReviewFileView.as_view(
 #          {'get': 'list'}
 #          )),
-    path('snort/update-rule/', views.update_rule.as_view()),
-    path('agents/install-agent/<int:pk>', views.install_agent_by_id.as_view()),
-    path('agents/install-agent', views.install_agent.as_view()),
-    path('agents/auto-clear-sftp', views.AgentClearFileSFTPView.as_view()),
-    path('agents/auto-check-overload', views.AgentCheckOverloadView.as_view()),
+    # path('snort/update-rule/', views.update_rule.as_view()),
+    # path('agents/install-agent/<int:pk>', views.install_agent_by_id.as_view()),
+    # path('agents/install-agent', views.install_agent.as_view()),
+    # path('agents/auto-clear-sftp', views.AgentClearFileSFTPView.as_view()),
+    # path('agents/auto-check-overload', views.AgentCheckOverloadView.as_view()),
     path('dashboard/stat/', views.DashboardView.as_view()),
     path('dashboard/startTracePcap/', views.DashboardStartTracePcapView.as_view()),
     path('dashboard/stopTracePcap/', views.DashboardStopTracePcapView.as_view()),
-    path('syscallBatch/', views.SyscallBatchView.as_view()),
+    # path('syscallBatch/', views.SyscallBatchView.as_view()),
     # path('NotiSnort/', views.NotiSnortView.as_view())
     path('auto/update-devices-by-scan-arp', views.AutoUpdateListDevice.as_view()),
     path("devices/threshold", views.ThresholdView.as_view()),

@@ -80,7 +80,8 @@ import aspose.words as aw
 from elasticsearch import Elasticsearch
 from dotenv import dotenv_values
 from django.shortcuts import get_object_or_404
-from .tools import validateip, capture
+from .tools import validateip, capture, SftpRequest
+from . import extract_pcap
 from .permissions import HasAPIKey
 from IoTAnalyzer.env_dev import *
 import random
@@ -92,6 +93,7 @@ from .extract_files_frompcap import extract_allFolder
 from django.http import HttpResponse
 from IoTAnalyzer.env_dev import *
 import threading
+import time
 
 APP_ID = 'c2234356-b7c0-4ba4-b786-daecff964a82'
 REST_API_KEY ='NjI3NTJkNmItYjE5My00M2NmLWJhM2MtN2RhNzFkM2JiYzNl'
@@ -161,7 +163,6 @@ def action_device_norm(type,data):
         r.set("device_norm",json.dumps(data_device_norm))
 
 def action_check_device_norm(data,status=False,trace_pcap=False):
-    print(data)
     r = redis.Redis(host='redis-agent', port=6379, db=0)
     template_data={"status":status,"time":int(datetime.now().timestamp()),"trace_pcap":trace_pcap}
     if r.get("check_device_norm"):
@@ -192,7 +193,6 @@ class PutAutoChangePw(APIView):
         res = ""
         for x in arr:
             res += (x+chr(10))
-        print(res)
         open(pathEnv, 'w').close()
         f = open(pathEnv, 'w')
         f.write(res)
@@ -219,11 +219,8 @@ class ExportXLS(APIView):
                 )
              
             if xxx_data.get('timestamp', None) != None:
-                print(type(result))
-                print(xxx_data.get('timestamp', None))
                 # aaa = datetime.strptime(xxx_data.get('timestamp', None)[0], '%yyyy-%mm-%dd %HH:%MM:%SS.')
                 # bbb = datetime.strptime(xxx_data.get('timestamp', None)[1], '%yyyy-%mm-%dd %HH:%MM:%SS.')
-                # print(aaa, bbb)
                 result = result. filter(timestamp__range = (xxx_data.get('timestamp', None)[0], xxx_data.get('timestamp', None)[1]))
             i = 0
             xyz = result
@@ -305,76 +302,7 @@ class GetExportXLSURL(APIView):
     def get (self, request):
         url = request.get_full_path()
         url = url[:url.find("/url")] + url[url.find("/url") + 4:]
-        print("checkkkkkk", url)
         return Response(url)
-
-class install_agent_by_id(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_object(self, pk):
-        try:
-            return Devices.objects.get(pk=pk)
-        except Devices.DoesNotExist:
-            raise Http404
-    def get(self, request, pk, format=None):
-        device = self.get_object(pk)
-        serializer = DevicesSerializer(device, context={'request': request})
-        try:
-            folder_path = './kc-static-files/build/file_config'
-            os.mkdir(folder_path)
-        except:
-            print("folder config da ton tai")
-
-        try:
-            folder_path=f'./kc-static-files/build/file_config/{pk}'
-            os.mkdir(folder_path)
-        except:
-            print(f'folder {pk} da ton tai')
-
-        try:
-            file_path=f'./kc-static-files/build/file_config/{pk}/config.txt'
-            data_config=f'{os.getenv("LAN_SOCKET_SERVER_IP") if not serializer.data["from_internet"] else os.getenv("PUBLIC_SOCKET_SERVER")}\n{pk}\n{serializer.data["remote_port"]}\n{serializer.data["ip"]}\n'
-            with open(file_path, 'w') as f:
-                f.write(data_config)
-        except:
-            print('loi file config')
-        r = redis.Redis(host='redis-agent', port=6379, db=0)
-        # logger.info(serializer.data)
-        device_id = serializer.data['id']
-        time_check = datetime.now().timestamp()
-        data_send_check_norm = {"device":serializer.data["id"]}
-        action_check_device_norm(data_send_check_norm)
-        if r.get("device_check_have_data"):
-            device_check_have_data = json.loads(r.get("device_check_have_data"))
-            if device_check_have_data.get(f'{device_id}'):
-                device_check_have_data[f'{device_id}']["status"] = "HOATDONG"
-                device_check_have_data[f'{device_id}']["timestamp"] = time_check
-            else: 
-                device_check_have_data[f'{device_id}']={f'{device_id}':{"status":"HOATDONG","timestamp":time_check}}
-            r.set("device_check_have_data",json.dumps(device_check_have_data))
-        else :
-            device_check_have_data = {f'{device_id}':{"status":"HOATDONG","timestamp":time_check}}
-            r.set("device_check_have_data",json.dumps(device_check_have_data))
-        tasks.publish_message(
-            {'type': 'install', 'id': serializer.data['id'], 'ip_agent': serializer.data['ip'],
-             'protocol': serializer.data['protocol'],
-            #  'ip_django': os.getenv("LAN_IP"),
-             'ip_django': os.getenv("LAN_IP") if not serializer.data['from_internet'] else os.getenv("PUBLIC_IP"),
-             'ip_sock_serv': os.getenv("LAN_SOCKET_SERVER_IP") if not serializer.data['from_internet'] else os.getenv("PUBLIC_SOCKET_SERVER"),
-             'ip_tftp_serv': os.getenv("LAN_SOCKET_SERVER_IP") if not serializer.data['from_internet'] else os.getenv("PUBLIC_TFTP_SERVER"),
-             "username": serializer.data['username'], "password": serializer.data['password'],
-             'OS': serializer.data['os'],
-             'port': serializer.data['port'],
-             'remote_port': serializer.data['remote_port'],
-             'hwagent': serializer.data['hwagent'],
-             'agent_name':serializer.data['agent_name'],
-             'device_type':serializer.data['device_type'],
-             'address':serializer.data['address']
-
-            })
-        print("??????????", os.getenv("LAN_SOCKET_SERVER_IP") if not serializer.data['from_internet'] else os.getenv("PUBLIC_SOCKET_SERVER"))
-        
-        return Response({"status": "doing task...","OS":serializer.data['os']})
 
 class update_rule(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -474,9 +402,7 @@ class update_devices_by_ip(generics.GenericAPIView):
         # logger.error("error in update_devices...... request = %r "%(request))
         devices = self.get_object(ip)
         # devices
-        print(devices)
         serializer = UpdateDeviceSerializer(devices, data=xxx_data)
-        print(serializer)
         # serializer = UpdateDeviceSerializer(devices)
         if serializer.is_valid():
             serializer.save()
@@ -533,7 +459,6 @@ class SyscallBatchView(APIView):
         #         device_id=Devices.objects.get(id=each['id']))
         #     for each in syscall_batch_as_list
         #     )
-        print("attempting to send %r" % (len(syscall_batch_as_list)))
         for each_record in syscall_batch_as_list:
             syscall_object = SyscallList(
                 pid=each_record['pid'],
@@ -603,7 +528,6 @@ class BlackListIPView(viewsets.ModelViewSet):
         try:
             req = requests.get(url=f'{os.getenv("CENTER_SERVER_IP")}/BlackListIP/', headers=get_headers())
             data = req.json()['results']
-            print(data)
             recent_id = (len(BlackListIP.objects.all()) + 1)
             for item in data:
                 if BlackListIP.objects.all().filter(ip=item["ip"]).first() == None and WhiteListIP.objects.all().filter(ip=item["ip"]).first() == None and validateip.is_ipv4(item["ip"]):
@@ -637,10 +561,8 @@ class BlackListIPView(viewsets.ModelViewSet):
             page_size = request.query_params['page_size']
             page = request.query_params['current']
             paginator = Paginator(listIP, page_size)   
-            print(paginator.get_page(page))
             serializer = self.get_serializer(
                 paginator.get_page(page), many=True)
-            print(serializer)
             return Response({
                 'results': serializer.data,
                 'count': paginator.count,
@@ -670,12 +592,9 @@ class BlackListIPView(viewsets.ModelViewSet):
                 data = data.filter(ip=request.query_params['ip'])
             if request.query_params.get('url', None) != None:
                 data = data.filter(url=request.query_params['url'])
-            print(data)
             paginator = Paginator(data, page_size)   
-            print(paginator.get_page(page))
             serializer = self.get_serializer(
                 paginator.get_page(page), many=True)
-            print(serializer)
             return Response({
                 'results': serializer.data,
                 'count': paginator.count,
@@ -701,10 +620,8 @@ class BlackListIPView(viewsets.ModelViewSet):
     #         page_size = request.query_params['page_size']
     #         page = request.query_params['current'] 
     #         paginator = Paginator(data, page_size)   
-    #         print(paginator.get_page(page))
     #         serializer = self.get_serializer(
     #             paginator.get_page(page), many=True)
-    #         print(serializer)
     #         return Response({
     #             'results': serializer.data,
     #             'count': paginator.count,
@@ -725,14 +642,11 @@ class BlackListIPView(viewsets.ModelViewSet):
             data = Devices.objects.filter(
                         blacklistip__ip__contains= request.query_params.get('ip', None),
             )
-            print(data)
             page_size = request.query_params['page_size']
             page = request.query_params['current'] 
             paginator = Paginator(data, page_size)   
-            print(paginator.get_page(page))
             serializer = self.get_serializer(
                 paginator.get_page(page), many=True)
-            print(serializer)
             return Response({
                 'results': serializer.data,
                 'count': paginator.count,
@@ -760,10 +674,8 @@ class BlackListIPView(viewsets.ModelViewSet):
             page = request.query_params['current'] 
             # if request.query_params
             paginator = Paginator(data, page_size)   
-            print(paginator.get_page(page))
             serializer = self.get_serializer(
                 paginator.get_page(page), many=True)
-            print(serializer)
             return Response({
                 'results': serializer.data,
                 'count': paginator.count,
@@ -784,17 +696,14 @@ class BlackListIPView(viewsets.ModelViewSet):
     #         data = Devices.objects.filter(
     #                     id= request.query_params.get('id', None),
     #         ).first()
-    #         print(data)
     #         listIP = data.blacklistip.filter(
     #             ip__icontains=request.query_params.get('ip', None)
     #             )
     #         page_size = request.query_params['page_size']
     #         page = request.query_params['current'] 
     #         paginator = Paginator(listIP, page_size)   
-    #         print(paginator.get_page(page))
     #         serializer = self.get_serializer(
     #             paginator.get_page(page), many=True)
-    #         print(serializer)
     #         return Response({
     #             'results': serializer.data,
     #             'count': paginator.count,
@@ -824,7 +733,6 @@ class BlackListIPView(viewsets.ModelViewSet):
             paginator = Paginator(data, page_size)   
             serializer = self.get_serializer(
                 paginator.get_page(page), many=True)
-            print(serializer)
             return Response({
                 'results': serializer.data,
                 'count': paginator.count,
@@ -882,7 +790,6 @@ class WhiteListIPView(viewsets.ModelViewSet):
         try:
             req = requests.get(url=f'{os.getenv("CENTER_SERVER_IP")}/WhiteListIP/', headers=get_headers())
             data = req.json()['results']
-            print(data)
             recent_id = (len(WhiteListIP.objects.all()) + 1)
             for item in data:
                 if BlackListIP.objects.all().filter(ip=item["ip"]).first() == None and WhiteListIP.objects.all().filter(ip=item["ip"]).first() == None and validateip.is_ipv4(item["ip"]):
@@ -917,12 +824,9 @@ class WhiteListIPView(viewsets.ModelViewSet):
                 data = data.filter(ip=request.query_params['ip'])
             if request.query_params.get('url', None) != None:
                 data = data.filter(url=request.query_params['url'])
-            print(data)
             paginator = Paginator(data, page_size)   
-            print(paginator.get_page(page))
             serializer = self.get_serializer(
                 paginator.get_page(page), many=True)
-            print(serializer)
             return Response({
                 'results': serializer.data,
                 'count': paginator.count,
@@ -1088,13 +992,11 @@ class DevicesViewSet(
         for device in devices:
             serializer = DevicesSerializer(device).data
             resData.append(serializer)
-        print("--------------------------", len(resData))
         return Response({
             "count": total,
             "results": resData
         }, status=status.HTTP_200_OK)
         # except Exception as ex:
-        #     print(ex)
         #     logging.error("!!!!!!!!!!! Gửi lên ELK lỗi")
         # return Response(serializer.data)
 
@@ -1169,7 +1071,6 @@ class DevicesViewSet(
             }
             res = es.index(index="demo-kc", document=doc)
         except Exception as ex:
-            print(ex)
             logging.error("!!!!!!!!!!! Gửi lên ELK lỗi")
         # elasttic center
         try:
@@ -1188,7 +1089,6 @@ class DevicesViewSet(
             }
             res = es.index(index="demo-kc", document=doc)
         except Exception as ex:
-            print(ex)
             logging.error("!!!!!!!!!!! Gửi lên ELK lỗi")
     def create(self, request, *args, **kwargs):
         serializer = DevicesSerializer(data=request.data)
@@ -1212,7 +1112,6 @@ class DevicesViewSet(
 
 
     def update_rulebase_hw(self, pk):
-        print("??????????????????????????????????????")
         current_device = Devices.objects.filter(
                 id=pk).first()
         if current_device.hwagent:
@@ -1228,7 +1127,6 @@ class DevicesViewSet(
                 'remote_port': current_device.remote_port,
                 'hwagent': current_device.hwagent
                 })
-        print("==============================xxxxx")
         return "doing task update rulebase hardware agent"
     id = openapi.Parameter(
         'id',
@@ -1268,7 +1166,6 @@ class DevicesViewSet(
                 }
                 res = es.index(index="demo-kc", document=doc)
             except Exception as ex:
-                print(ex)
                 logging.error("!!!!!!!!!!! Gửi lên ELK lỗi")
 
             #Elastic center
@@ -1285,7 +1182,6 @@ class DevicesViewSet(
                 }
                 res = es.index(index="demo-kc", document=doc)
             except Exception as ex:
-                print(ex)
                 logging.error("!!!!!!!!!!! Gửi lên ELK lỗi")
 
             tasks.publish_message(
@@ -1316,7 +1212,6 @@ class DevicesViewSet(
                 }
                 res = es.index(index="demo-kc", document=doc)
             except Exception as ex:
-                print(ex)
                 logging.error("!!!!!!!!!!! Gửi lên ELK lỗi")
 
             #Elastic center
@@ -1333,7 +1228,6 @@ class DevicesViewSet(
                 }
                 res = es.index(index="demo-kc", document=doc)
             except Exception as ex:
-                print(ex)
                 logging.error("!!!!!!!!!!! Gửi lên ELK lỗi")
 
             tasks.publish_message(
@@ -1394,7 +1288,6 @@ class DevicesViewSet(
     )
     @action(detail=False, methods=['patch'])
     def update_device_by_ip(self, request):
-        print("error in update_device_by_ip")
         try:
             xxx_data = json.loads(request.query_params['data'])
             current_device = Devices.objects.filter(
@@ -1418,7 +1311,6 @@ class DevicesViewSet(
 
         # queryset = Devices.objects.all().order_by('created')
         # for device in queryset.iterator():
-        #     print(device.name)
         xxx_data = json.loads(request.query_params['data'])
         try:
             current_device = Devices.objects.filter(
@@ -1432,7 +1324,6 @@ class DevicesViewSet(
 
     def auto_update_rule_snort(self):
         logging.error("!!!!!!!!!!ALO Update rule nao :3")
-        # print("!!!!!!!!!!ALO Update rule nao")
         tasks.publish_message(
             {'type': 'update_rule'})
         return Response({"status": "doing task..."})
@@ -1440,17 +1331,12 @@ class DevicesViewSet(
     # @action(detail=False, methods=['patch'])
     def auto_update_password(self):
 
-        # print("lewl lewlwelwwlew")
             queryset = Devices.objects.all().filter(autoUpdatePasswd=True)
-            # print(queryset)
             characters = string.ascii_letters + string.digits
             for device in queryset.iterator():
                 autogen_password = ''.join(random.choice(characters) for i in range(15))
-                print("Random password is:", autogen_password)
                 auto_gen = "clgt123456"
-                print("==============================1212")
                 serializer = DevicesSerializer(device)
-                print("Thiet bi ",serializer.data['id']," dang duoc cap nhat mat khau", )
                 telnet_root_dir = "./kc-static-files/build"
                 if not os.path.isdir(telnet_root_dir):
                     os.makedirs(telnet_root_dir)
@@ -1501,7 +1387,6 @@ class DevicesViewSet(
             for dt in data['id']:
                 currentDevice = Devices.objects.filter(
                 id=dt).order_by('-created').first()
-                print(currentDevice.id)
                 tasks.publish_message(
                 {'type': 'install', 'id': currentDevice.id, 'ip_agent': currentDevice.ip,
                 'protocol': currentDevice.protocol,
@@ -1541,7 +1426,6 @@ class DevicesViewSet(
                 'port': currentDevice.port,
                 'hwagent': currentDevice.hwagent
                 })
-                print(currentDevice.id)      
             return Response({"message": "handling.."})
         except Exception as e:
             logging.error(e)
@@ -1597,7 +1481,6 @@ class DevicesViewSet(
                             }
                             res = es.index(index="demo-kc", document=doc)
                         except Exception as ex:
-                            print(ex)
                             logging.error("!!!!!!!!!!! Gửi lên ELK lỗi")
 
                         #Elastic center
@@ -1614,7 +1497,6 @@ class DevicesViewSet(
                             }
                             res = es.index(index="demo-kc", document=doc)
                         except Exception as ex:
-                            print(ex)
                             logging.error("!!!!!!!!!!! Gửi lên ELK lỗi")
                 rep = self.update_rulebase_hw(id)
             return Response({"message": messss})
@@ -1642,13 +1524,10 @@ class DevicesViewSet(
                     blacklist = device.blacklistip.all()
                     stt = True
                     ip = WhiteListIP.objects.filter(id = dt).first()
-                    print(ip.ip)
                     for dt_black in blacklist:
-                        print(dt_black.ip)
                         if ip.ip == dt_black.ip:
                             black.append(dt_black.id)
                             ip_black = BlackListIP.objects.filter(id = dt_black.id).first()
-                            print(">>>>>>>>>>>>>>>>",ip_black.ip)
                             device.blacklistip.remove(ip_black)
                             
                             if stt:
@@ -1699,7 +1578,6 @@ class DevicesViewSet(
     def remove_black_list_IP(self, request):
         try:
             xxx_data = request.data
-            print("check dataaaaaa", xxx_data)
             data = xxx_data['blacklistip']
             for id in xxx_data['id']:    
                 for dt in data:
@@ -1730,7 +1608,6 @@ class DevicesViewSet(
             data = Devices.objects.filter(
                         blacklistip__ip__contains= request.query_params.get('ip', None),
             )
-            print(data)
             result = serializers.serialize('json', data)
             return Response(json.loads(result))
             # return Response({"message": "Done"})
@@ -1749,7 +1626,6 @@ class DevicesViewSet(
             data = Devices.objects.filter(
                         whitelistip__ip__contains= request.query_params.get('ip', None),
             )
-            print(data)
             result = serializers.serialize('json', data)
             return Response(json.loads(result))
             # return Response({"message": "Done"})
@@ -1768,11 +1644,9 @@ class DevicesViewSet(
             data = Devices.objects.filter(
                         id= request.query_params.get('id', None),
             ).first()
-            print(data)
             listIP = data.whitelistip.filter(
                 ip__icontains=request.query_params.get('ip', None)
                 )[:20]
-            print(listIP)
             result = serializers.serialize('json', listIP)
             return Response(json.loads(result))
             # return Response({"message": "Done"})
@@ -1804,11 +1678,9 @@ class DevicesViewSet(
             data = Devices.objects.filter(
                         id= request.query_params.get('id', None),
             ).first()
-            print(data)
             listIP = data.blacklistip.filter(
                 ip__icontains=request.query_params.get('ip', None)
                 )[:20]
-            print(listIP)
             result = serializers.serialize('json', listIP)
             return Response(json.loads(result))
             
@@ -1827,7 +1699,6 @@ class DevicesViewSet(
             data = Devices.objects.filter(
                         id= request.query_params.get('id', None),
             ).first()
-            print(data)
             listIP = data.blacklistip.all()
             rel =[]
             for dt in listIP:
@@ -2062,11 +1933,8 @@ class AlertsViewSet(viewsets.ModelViewSet):
                 )
              
             if xxx_data.get('timestamp', None) != None:
-                print(type(result))
-                print(xxx_data.get('timestamp', None))
                 # aaa = datetime.strptime(xxx_data.get('timestamp', None)[0], '%yyyy-%mm-%dd %HH:%MM:%SS.')
                 # bbb = datetime.strptime(xxx_data.get('timestamp', None)[1], '%yyyy-%mm-%dd %HH:%MM:%SS.')
-                # print(aaa, bbb)
                 result = result.filter(timestamp__range = [xxx_data.get('timestamp', None)[0], xxx_data.get('timestamp', None)[1]])
             i = 0
             xyz = result
@@ -2114,9 +1982,7 @@ class AlertsViewSet(viewsets.ModelViewSet):
             page_size = request.query_params['page_size']
             page = request.query_params['current'] 
             paginator = Paginator(xyz, page_size)   
-            # print(paginator.get_page(page))
             serializer = self.get_serializer(paginator.get_page(page), many=True)
-            # print(serializer)
             return Response({
                 'results': serializer.data,
                 'count': paginator.count,
@@ -2137,7 +2003,6 @@ class AlertsViewSet(viewsets.ModelViewSet):
     def exportXLSX(self,request):
         try:
             xxx_data = json.loads(request.query_params['data'])
-            print(xxx_data)
             output = BytesIO()
             workbook = xlsxwriter.Workbook(output)
             sheet1 = workbook.add_worksheet("Sheet1")
@@ -2282,7 +2147,6 @@ class ProcessHashViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data
-        print("",data)
         #Elastic server
         try:
             host=os.environ.get("CENTER_SERVER_ELASTIC")
@@ -2296,7 +2160,6 @@ class ProcessHashViewSet(viewsets.ModelViewSet):
             }
             res = es.index(index="demo-kc", document=doc)
         except Exception as ex:
-            print(ex)
             logging.error("!!!!!!!!!!! Gửi lên ELK lỗi")
         #Elastic local
         try:
@@ -2311,7 +2174,6 @@ class ProcessHashViewSet(viewsets.ModelViewSet):
             res = es.index(index="demo-kc", document=doc)
             return Response(data, status=status.HTTP_201_CREATED)
         except Exception as ex:
-            print(ex)
             logging.error("!!!!!!!!!!! Gửi lên ELK lỗi")
             return Response("!!!!!!!!!!! Gửi lên ELK lỗi", status=status.HTTP_400_BAD_REQUEST)
 
@@ -2335,11 +2197,9 @@ class ProcessHashViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def check_batch_exist(self, request):
         try:
-            # print("okei, i am querying with a batch of queries")
             xxx_data = json.loads(request.query_params['data'])
             batch_of_pid_sha1 = xxx_data
             # query sha1_DB by sha1_agent
-            # print(batch_of_pid_sha1)
             batch_of_sha1 = [each["sha1"] for each in batch_of_pid_sha1]
             query_result_as_objects = ProcessHash.objects.filter(
                 sha1__in=batch_of_sha1)
@@ -2349,7 +2209,6 @@ class ProcessHashViewSet(viewsets.ModelViewSet):
                  }
                 for e in query_result_as_objects
             ]
-            # print((sha1_acc_result_as_list),
             #   '???????', (batch_of_pid_sha1))
             result_pid_sha1 = []
             for each_pid_sha1 in batch_of_pid_sha1:
@@ -2379,8 +2238,6 @@ class ProcessHashViewSet(viewsets.ModelViewSet):
                         "acc": -1,
                     }
                     )
-            print("current len of result_pid_sha1 %r" % len(result_pid_sha1))
-            # print(result_pid_sha1)
             return Response(
                 data=result_pid_sha1,
                 status=201
@@ -2409,7 +2266,6 @@ def add_process_list_x(data_new):
         datas.append(data_new)
     with open("./init_processlist.json", "w") as outfile:
         json.dump(datas, outfile)
-    print(datas)
     # pass
 
 class ProcessListViewSet(viewsets.ModelViewSet):
@@ -2427,7 +2283,6 @@ class ProcessListViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def push_many_process(self,request):
-        print(request.data)
         return Response(data={'status': False}, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
@@ -2446,18 +2301,14 @@ class ProcessListViewSet(viewsets.ModelViewSet):
             json_processlist = []
             if r.get(f"process_device_{device_id}"):
                 json_processlist = json.loads(r.get(f"process_device_{device_id}"))
-            print("====================len_json_processlist", len(json_processlist))
             json_processlist = [x for x in json_processlist if (x.get('sha1', None) != None and x.get('sha1') != "")]
-            print("====================len_json_processlist", len(json_processlist))
             searchKey = request.query_params.get('searchKey', None)
-            print(json_processlist[0:10])
             if r.get(f"process_device_check"):
                 json_check_processlist = json.loads(r.get(f"process_device_check"))
             else:
                 json_check_processlist = {}
             
             resList = []
-            print("====================len_json_processlist", len(json_processlist))
             for process in json_processlist:
                 threat = json_check_processlist.get(str(process.get('sha1')), None)
                 process['threat'] = True
@@ -2496,9 +2347,6 @@ class ProcessListViewSet(viewsets.ModelViewSet):
                 #     process['threat'] = False
 
             if json_processlist and len(json_processlist) > 0:
-                print("====================len_json_processlist", len(json_processlist))
-                print("====================len_json_processlist", json_processlist[:10])
-                print("AADDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
                 add_process_list_x({
                     "device_id": device_id,
                     "process_list": json_processlist,
@@ -2676,7 +2524,6 @@ class SyscallListViewSet(viewsets.ModelViewSet):
             return Response(DevicesSerializer(currentDevice).data)
 
         except Exception as e:
-            print(e)
             return Response(data={'status': False}, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
@@ -2778,11 +2625,9 @@ class ModelMachineLearningView(
     @action(detail=False, methods=['get'])
     def check_version(self, request):
         try: 
-            print("logging from image _ post")
             center_server_url = os.getenv("CENTER_SERVER_URL")
             r = requests.get(center_server_url + "dlmodel/uploadModel")
             data = json.loads(r.text)
-            print(data)
             version_input = version.parse(data['results'][0]['version'])
             queryset = ModelML.objects.filter(
                 category = data['results'][0]['category'],
@@ -2807,7 +2652,6 @@ class ModelMachineLearningView(
                 return Response(data={'status': False}, status=status.HTTP_501_NOT_IMPLEMENTED)
         except Exception as e:
             logging.error(e)
-            print(e)
             return Response(data={'status': False}, status=status.HTTP_400_BAD_REQUEST)
 
 class IpsView(
@@ -2916,7 +2760,6 @@ class IpsView(
             })
         except Exception as e:
             logging.error(e)
-            print(e)
             return Response(data={'status': False}, status=status.HTTP_400_BAD_REQUEST)
     
     @swagger_auto_schema(
@@ -2938,7 +2781,6 @@ class IpsView(
             return Response(data=serializer.data)
         except Exception as e:
             logging.error(e)
-            print(e)
             return Response(data={'status': False}, status=status.HTTP_400_BAD_REQUEST)
     
     @swagger_auto_schema(
@@ -3016,48 +2858,39 @@ class OneSignalView(viewsets.ModelViewSet):
             return Response(serializer.data)
         except Exception as e:
             logging.error(e)
-            print(e)
             return Response(data={'status': False}, status=status.HTTP_400_BAD_REQUEST)
     
-    @swagger_auto_schema(
-        method='get',
-        manual_parameters=[notificaiton_mobile],
-    )
-    @action(detail=False, methods=['get'])
-    def push_noti_device(self, request):
-        try:
-            # print(type(xxx_data))
+    # @swagger_auto_schema(
+    #     method='get',
+    #     manual_parameters=[notificaiton_mobile],
+    # )
+    # @action(detail=False, methods=['get'])
+    # def push_noti_device(self, request):
+    #     try:
           
-            query_result_as_objects = OneSignal.objects.all() #.filter(is_superuser = True)
-            info_device = []
-            for e in query_result_as_objects:
-                info_device.append(self.get_serializer(e).data['onesignal_id'])
-            client = Client(app_id=APP_ID, rest_api_key=REST_API_KEY, user_auth_key=USER_AUTH_KEY)
+    #         query_result_as_objects = OneSignal.objects.all() #.filter(is_superuser = True)
+    #         info_device = []
+    #         for e in query_result_as_objects:
+    #             info_device.append(self.get_serializer(e).data['onesignal_id'])
+    #         client = Client(app_id=APP_ID, rest_api_key=REST_API_KEY, user_auth_key=USER_AUTH_KEY)
             
-            try:
-                notification_body = {
-                    'contents': {'en': request.query_params.get('notificaiton_mobile', None)},
-                    'included_segments': ['Active Users'],
-                    "include_external_user_ids": info_device,
+    #         try:
+    #             notification_body = {
+    #                 'contents': {'en': request.query_params.get('notificaiton_mobile', None)},
+    #                 'included_segments': ['Active Users'],
+    #                 "include_external_user_ids": info_device,
                     
-                }
+    #             }
 
-                # Make a request to OneSignal and parse response
-                response = client.send_notification(notification_body)
-                print(response.body) # JSON parsed response
-                print(response.status_code) # Status code of response
-                print(response.http_response) # Original http response object.
+    #             # Make a request to OneSignal and parse response
+    #             response = client.send_notification(notification_body)
 
-            except OneSignalHTTPError as e: # An exception is raised if response.status_code != 2xx
-                print(e)
-                print(e.status_code)
-                print(e.http_response.json()) # 
+    #         except OneSignalHTTPError as e: # An exception is raised if response.status_code != 2xx
     
-            return Response(notification_body)
-        except Exception as e:
-            logging.error(e)
-            print(e)
-            return Response(data={'status': False}, status=status.HTTP_400_BAD_REQUEST)
+    #         return Response(notification_body)
+    #     except Exception as e:
+    #         logging.error(e)
+    #         return Response(data={'status': False}, status=status.HTTP_400_BAD_REQUEST)
     
     @swagger_auto_schema(
         method='delete',
@@ -3073,7 +2906,6 @@ class OneSignalView(viewsets.ModelViewSet):
             return Response({"status": "Delete data successfully"})
         except Exception as e:
             logging.error(e)
-            print(e)
             return Response(data={'status': False}, status=status.HTTP_400_BAD_REQUEST)
 
 class RuleBaseView(viewsets.ModelViewSet):
@@ -3102,7 +2934,6 @@ class RuleBaseView(viewsets.ModelViewSet):
         else:
             output = RuleBase.objects.filter(
                     rules='snort').order_by('-timestamp').first()
-        # print(rulebase_snort)
         return Response(RuleBaseSerializer(output).data)
 
 class DeviceIpConnectHWagentView(viewsets.ModelViewSet):
@@ -3158,7 +2989,6 @@ class DeviceIpConnectHWagentView(viewsets.ModelViewSet):
     #                     dbsave.save()
     #         else:
     #             for stt in range(leg_data):
-    #                     print('00000000000')
     #                     dbsave = DeviceIpConnectHWagent(
     #                         device = self.get_object(pk = xxx_data['device']),
     #                         mac_addr = xxx_data['mac_addr'][stt], 
@@ -3169,7 +2999,6 @@ class DeviceIpConnectHWagentView(viewsets.ModelViewSet):
     #         return Response({"status": True})
     #     except Exception as e:
     #         logging.error(e)
-    #         print(e)
     #         return Response(data={'status': e}, status=status.HTTP_400_BAD_REQUEST)
     
     device_id = openapi.Parameter(
@@ -3194,7 +3023,6 @@ class DeviceIpConnectHWagentView(viewsets.ModelViewSet):
             return Response({"data": data})
         except Exception as e:
             logging.error(e)
-            print(e)
             return Response(data={'status': e}, status=status.HTTP_400_BAD_REQUEST)
     
     connect = openapi.Parameter(
@@ -3221,7 +3049,6 @@ class DeviceIpConnectHWagentView(viewsets.ModelViewSet):
             return Response(json.loads(data))
         except Exception as e:
             logging.error(e)
-            print(e)
             return Response(data={'status': e}, status=status.HTTP_400_BAD_REQUEST)
     
     network = openapi.Parameter(
@@ -3238,7 +3065,6 @@ class DeviceIpConnectHWagentView(viewsets.ModelViewSet):
     )
     @action(detail=False, methods=['patch'])
     def update_device_network_hwagent(self, request):
-        print("?????wewewe??????????")
         try:
             xxx_data = json.loads(request.query_params['data'])
             for dt in xxx_data['id']:
@@ -3263,7 +3089,6 @@ class DeviceIpConnectHWagentView(viewsets.ModelViewSet):
             return Response({"status": True})
         except Exception as e:
             logging.error(e)
-            print(e)
             return Response(data={'status': e}, status=status.HTTP_400_BAD_REQUEST)
 
 class CreateDevice(generics.CreateAPIView):
@@ -3272,7 +3097,6 @@ class CreateDevice(generics.CreateAPIView):
     parser_classes = (FormParser, MultiPartParser)
 
     def post(self,request,*args,**kwargs):    
-        # print(xxx_data['file'])
         # filename = xxx_data['file']
         return self.create(request,*args,**kwargs)
 
@@ -3299,7 +3123,6 @@ class EditDevice(generics.CreateAPIView):
             return True
         except Exception as e:
             logging.error(e)
-            print(e)
             return Response(data={'status': e}, status=status.HTTP_400_BAD_REQUEST)
 
 class AutoUpdateListDevice(APIView):
@@ -3309,7 +3132,6 @@ class AutoUpdateListDevice(APIView):
         manual_parameters=[subnet],
     )
     def post(self, request):
-        print("go tooooo")
         config = dotenv_values("/backend/.env.dev")
 
 
@@ -3319,12 +3141,9 @@ class AutoUpdateListDevice(APIView):
         password = config.get("HOST_PASSWORD")
         interface = config.get("HOST_INTERFACE")
         ssh = SshClient()
-        print(ip_host, username, password, interface)
         login = ssh.login_host_by_ssh(ip_host, username, password, 22)
         if login == True:
-            print("dsd")
             scan_device = ssh.scan_mac_device(subnet, interface, password)
-            print(scan_device)
         else:
             return False
 
@@ -3420,7 +3239,6 @@ class ThresholdView(APIView):
                 res += (arr[i])
                 if i < len(arr) - 1:
                     res += chr(10)
-            print(res)
             open(pathEnv, 'w').close()
             f = open(pathEnv, 'w')
             f.write(res)
@@ -3433,7 +3251,6 @@ class GetExportPDFURL(APIView):
     def get (self, request):
         url = request.get_full_path()
         url = url[:url.find("/url")] + url[url.find("/url") + 4:]
-        print("checkkkkkk", url)
         return Response(url)
 
 class ExportPDF(APIView):
@@ -3456,8 +3273,6 @@ class ExportPDF(APIView):
                 )
              
             if xxx_data.get('timestamp', None) != None:
-                print(type(result))
-                print(xxx_data.get('timestamp', None))
                 result = result. filter(timestamp__range = (xxx_data.get('timestamp', None)[0], xxx_data.get('timestamp', None)[1]))
             i = 0
             xyz = result
@@ -3533,7 +3348,6 @@ class ExportPDF(APIView):
             document.save("./devices/reports/alerts.docx")
             convert_to_pdf = f"libreoffice --headless --convert-to pdf ./devices/reports/alerts.docx --outdir ./devices/reports/pdf"
             subprocess.run(convert_to_pdf, shell=True)
-            print(os.listdir("./devices/reports/pdf"))
             return FileResponse(open("./devices/reports/pdf/alerts.pdf", 'rb+'), as_attachment=True, filename='alerts.pdf', status=status.HTTP_200_OK)
         except Exception as e:
             logging.error(e)
@@ -3543,7 +3357,6 @@ class GetExportDOCXURL(APIView):
     def get (self, request):
         url = request.get_full_path()
         url = url[:url.find("/url")] + url[url.find("/url") + 4:]
-        print("checkkkkkk", url)
         return Response(url)
 
 class ExportDOCX(APIView):
@@ -3566,8 +3379,6 @@ class ExportDOCX(APIView):
                 )
              
             if xxx_data.get('timestamp', None) != None:
-                print(type(result))
-                print(xxx_data.get('timestamp', None))
                 result = result. filter(timestamp__range = (xxx_data.get('timestamp', None)[0], xxx_data.get('timestamp', None)[1]))
             i = 0
             xyz = result
@@ -3848,9 +3659,7 @@ class DeviceNormViewSet(viewsets.ModelViewSet):
         try:
             device_id = request.query_params.get("device_id")
             data = request.data
-            print(data)
             instance = self.queryset.filter(device_id = device_id).first()
-            print(instance)
             if instance != None:
                 serializer = DeviceNormSerializer(instance, data=data)
                 if serializer.is_valid():
@@ -3893,7 +3702,6 @@ class GetFileFromPcap(APIView):
     def post(self, request):
         try:
             try:
-                print("==============",request.data)
                 directory_path="/backend/media/file_save_from_pcap"
                 files = os.listdir(directory_path)
                 for file in files:
@@ -3901,7 +3709,6 @@ class GetFileFromPcap(APIView):
                     if os.path.isfile(file_path):
                         os.remove(file_path)
             except:
-                print("loi xoa file trong file luu")
                 pass
             file_uploaded = request.FILES.get('file')
             path = default_storage.save(file_uploaded.name, ContentFile(file_uploaded.read()))
@@ -3931,7 +3738,6 @@ class GetFileFromNetwork(APIView):
     def get():
         try:
             try:
-                print("==============",request.data)
                 directory_path="/backend/media/file_save_from_pcap"
                 files = os.listdir(directory_path)
                 for file in files:
@@ -3939,7 +3745,6 @@ class GetFileFromNetwork(APIView):
                     if os.path.isfile(file_path):
                         os.remove(file_path)
             except:
-                print("loi xoa file trong file luu")
                 pass
             file_uploaded = request.FILES.get('file')
             path = default_storage.save(file_uploaded.name, ContentFile(file_uploaded.read()))
@@ -4011,7 +3816,6 @@ class GetFileFromPcapWithTime(APIView):
     def post(self, request):
         try:
             try:
-                print("==============",request.data)
                 directory_path="/backend/media/file_save_from_pcap"
                 files = os.listdir(directory_path)
                 for file in files:
@@ -4019,7 +3823,6 @@ class GetFileFromPcapWithTime(APIView):
                     if os.path.isfile(file_path):
                         os.remove(file_path)
             except:
-                print("loi xoa file trong file luu")
                 pass
             data_request = request.data
             device_id = data_request.get("device_id")
@@ -4092,6 +3895,20 @@ class DashboardView(APIView):
             logger.error(e)
             return Response(data={'status': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+def start_extract_pcap():
+    try:
+        update_env("EXTRACT_PCAP", "true")
+        threading.Thread(target=extract_pcap.start_extract).start()
+
+    except Exception as e:
+        logger.error(e)
+
+def stop_extract_pcap():
+    try:
+        update_env("EXTRACT_PCAP", "false")
+    except Exception as e:
+        logger.error(e)
+
 class DashboardStartTracePcapView(APIView):
     serializer_class = DevicesSerializer
     queryset = Devices.objects.all()
@@ -4100,11 +3917,12 @@ class DashboardStartTracePcapView(APIView):
             used_ram = round(psutil.virtual_memory()[2]/100,4)
             used_cpu = round(psutil.cpu_percent()/100,4)
             update_env("TRACE_PCAP", "true")
+            update_env("PHAN_TAI", "true")
             trace_pcap = get_env("TRACE_PCAP", "false") == "true"
 
             for _ in range(int(get_env("ANALYZER_PCAP_THREAD_NUMBER", 10))):
                 threading.Thread(target=capture.cap, args=(get_env("ANALYZER_INF", "wlp7s0"), int(get_env("ANALYZER_PCAP_NUMBER", 1000)))).start()
-
+            start_extract_pcap()
             return Response(data={
                 'device_counts': 0,
                 'monitored_devices_counts': 0,
@@ -4161,7 +3979,6 @@ def send_cpu_ram_to_local_elastic():
             "ram": used_ram * 100,
             "timestamp": datetime.now() - delta_7h
         }
-        print("==============send_cpu_ram_to_local_elastic==============","cpu:", used_cpu, "ram:", used_ram)
         es_index = get_env("ANALYZER_ELASTIC_INDEX", "cpu_ram")
         if not es.indices.exists(index=es_index):
             es.indices.create(index=es_index)
@@ -4174,7 +3991,6 @@ def send_cpu_ram_to_local_redis():
         used_ram = round(psutil.virtual_memory()[2]/100,4)
         used_cpu = round(psutil.cpu_percent()/100,4)
         r = redis.Redis(host=get_env("ANALYZER_REDIS_HOST", "127.0.0.1"), port=int(get_env("ANALYZER_REDIS_PORT", 6379)), db=0)
-        print("==============send_cpu_ram_to_local_redis==============","cpu:", used_cpu, "ram:", used_ram)
         r.set("cpu", used_cpu * 100)
         r.set("ram", used_ram * 100)
     except Exception as e:
@@ -4192,7 +4008,6 @@ def send_cpu_ram_to_center_elastic():
             "analyzer_ip": get_env("ANALYZER_IP_LOCAL", "127.0.0.1"),
             "timestamp": datetime.now() - delta_7h
         }
-        print("==============send_cpu_ram_to_center_elastic==============","cpu:", used_cpu, "ram:", used_ram)
         es_index = get_env("CENTER_ELASTIC_INDEX", "cpu_ram")
         if not es.indices.exists(index=es_index):
             es.indices.create(index=es_index)
@@ -4209,7 +4024,6 @@ def send_cpu_ram_to_center_redis():
             "cpu": used_cpu * 100,
             "ram": used_ram * 100,
         }
-        print("==============send_cpu_ram_to_center_redis==============","cpu:", used_cpu, "ram:", used_ram)
         redis_index = "cpu_ram_" + get_env("ANALYZER_IP_LOCAL", "127.0.0.1")
         r.set(redis_index, json.dumps(doc))
     except Exception as e:
@@ -4217,13 +4031,67 @@ def send_cpu_ram_to_center_redis():
 
 def get_best_analyzer():
     try:
-        req = requests.get(url=f'{os.getenv("CENTER_HOST")}/get_best_analyzer')
+        req = requests.get(url=f'{os.getenv("CENTER_HOST")}/devices/best-analyzer')
         if req.status_code == 200:
-            data = req.json()
-            r.set("list_analyzer", json.dumps(data))
-            print(json.dumps(data), type(json.dumps(data)))
+            datas = req.json()
+            device_lefts = []
+            sum_weights = 0
+            weights = []
+            for data in datas:
+                if (data.get("ip") != get_env("ANALYZER_IP_LOCAL")):
+                    sum_weights += int(data.get("weight"))
+                    device_lefts.append(
+                        {
+                            "ip": data.get("ip"),
+                            "weight": int(data.get("weight"))
+                        }
+                    )
+                    print("-----------------------", data.get("ip"), int(data.get("weight")))
+            for device in device_lefts:
+                weights.append(
+                    {
+                        "ip": device.get("ip"),
+                        "weight": round(((int(device.get("weight"))) / sum_weights) * 10)
+                    }
+                )
+            r.set("list_analyzer", json.dumps(weights))
+            print(json.dumps(weights), type(json.dumps(weights)))
     except Exception as e:
         logger.error(e)
+        
+def start_phan_tai():
+    phan_tai = get_env("PHAN_TAI", "false") == "true"
+    while(phan_tai):
+        entries = os.listdir("./tmp")
+        print(entries)
+        files = [entry for entry in entries if (os.path.isfile(f"./tmp/{entry}") and entry != ".gitkeep")]
+        print("=======================[ Start tim file ]=>", files, "=======================")
+        if len(files) > 0:
+            file = files[0]
+            print("=======================[ XU LY ]=>", file, "=======================")
+            os.system(f"sshpass -p CSrcGNXnnv6U scp -o StrictHostKeyChecking=no ./tmp/{file} ubuntu@192.168.10.73:/home/ubuntu/Desktop/datn-tung/analyzer/backend/tmp")
+            print("=======================[ PCAP TO JSON ]=>", file, "=======================")
+            os.remove(f"./tmp/{file}")
+        phan_tai = get_env("PHAN_TAI", "false") == "true"
+        time.sleep(10)
+    # sftp = SftpRequest.SftpRequest("192.168.10.73", "foo", "pass", "2222")
+    # sftp.download_file("/home/ubuntu/Desktop/datn-tung/analyzer/abc.xxx", "./tmp/abc.axxx")
+    print("________________PHAN TAI DEN ")
 
-def phan_tai():
-    pass
+def stop_phan_tai():
+    update_env("PHAN_TAI", "false")
+    print("________________DUNG PHAN TAI ")
+
+def check_phan_tai():
+    try:
+        used_ram = round(psutil.virtual_memory()[2]/100,4)
+        used_cpu = round(psutil.cpu_percent()/100,4)
+        phan_tai = get_env("PHAN_TAI", "false") == "true"
+        # if (used_cpu > 90 or used_ram > 90) and not phan_tai:
+        if phan_tai:
+            stop_extract_pcap()
+            threading.Thread(target=start_phan_tai).start()
+        elif (used_cpu <= 90 and used_ram <= 90):
+            stop_phan_tai()
+    except Exception as e:
+        logger.error(e)

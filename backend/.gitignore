@@ -120,3 +120,5 @@ media/
 static/
 tmp/*.pcap
 !tmp/.gitkeep
+tmp/extract/*.json
+!tmp/extract/.gitkeep

@@ -1,5 +1,5 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from devices.views import send_cpu_ram_to_local_elastic, send_cpu_ram_to_local_redis, send_cpu_ram_to_center_elastic, send_cpu_ram_to_center_redis, get_best_analyzer
+from devices.views import send_cpu_ram_to_local_elastic, send_cpu_ram_to_local_redis, send_cpu_ram_to_center_elastic, send_cpu_ram_to_center_redis, get_best_analyzer, check_phan_tai
 from IoTAnalyzer.env_dev import get_env
 
 #create scheduler that auto change password
@@ -13,6 +13,7 @@ def start():
     scheduler.add_job(send_cpu_ram_to_center_elastic, "interval", seconds = sec, id = "send_cpu_ram_to_center_elastic", replace_existing = True, timezone="Asia/Ho_Chi_Minh")
     scheduler.add_job(send_cpu_ram_to_center_redis, "interval", seconds = sec, id = "send_cpu_ram_to_center_redis", replace_existing = True, timezone="Asia/Ho_Chi_Minh")
     scheduler.add_job(get_best_analyzer, "interval", seconds = sec, id = "get_best_analyzer", replace_existing = True, timezone="Asia/Ho_Chi_Minh")
+    scheduler.add_job(check_phan_tai, "interval", seconds = sec, id = "check_phan_tai", replace_existing = True, timezone="Asia/Ho_Chi_Minh")
     print(scheduler.get_jobs())
     scheduler.start()
 
