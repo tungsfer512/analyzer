@@ -109,4 +109,4 @@ elasticsearch==8.6.2
 paramiko==2.7.2
 redis
 psutil
-pypcapkit
+pypcapkit==1.0.2.post6

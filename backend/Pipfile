@@ -112,7 +112,7 @@ aspose-words = "==23.2.0"
 paramiko = "==2.7.2"
 elasticsearch = "*"
 redis = "*"
-pypcapkit = "*"
+pypcapkit = "==1.0.2.post6"
 [dev-packages]
 
 [requires]

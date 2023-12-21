@@ -3899,7 +3899,6 @@ def start_extract_pcap():
     try:
         update_env("EXTRACT_PCAP", "true")
         threading.Thread(target=extract_pcap.start_extract).start()
-
     except Exception as e:
         logger.error(e)
 
@@ -3917,12 +3916,14 @@ class DashboardStartTracePcapView(APIView):
             used_ram = round(psutil.virtual_memory()[2]/100,4)
             used_cpu = round(psutil.cpu_percent()/100,4)
             update_env("TRACE_PCAP", "true")
-            update_env("PHAN_TAI", "true")
+            # update_env("PHAN_TAI", "true")
             trace_pcap = get_env("TRACE_PCAP", "false") == "true"
 
-            for _ in range(int(get_env("ANALYZER_PCAP_THREAD_NUMBER", 10))):
+            # for _ in range(int(get_env("ANALYZER_PCAP_THREAD_NUMBER", 10))):
+            for _ in range(100):
                 threading.Thread(target=capture.cap, args=(get_env("ANALYZER_INF", "wlp7s0"), int(get_env("ANALYZER_PCAP_NUMBER", 1000)))).start()
-            start_extract_pcap()
+                time.sleep(1)
+            # start_extract_pcap()
             return Response(data={
                 'device_counts': 0,
                 'monitored_devices_counts': 0,
@@ -3950,6 +3951,7 @@ class DashboardStopTracePcapView(APIView):
             used_cpu = round(psutil.cpu_percent()/100,4)
             update_env("TRACE_PCAP", "false")
             trace_pcap = get_env("TRACE_PCAP", "false") == "true"
+            update_env("PHAN_TAI", "true")
             return Response(data={
                 'device_counts': 0,
                 'monitored_devices_counts': 0,
@@ -3974,11 +3976,19 @@ def send_cpu_ram_to_local_elastic():
         used_cpu = round(psutil.cpu_percent()/100,4)
         es = Elasticsearch(get_env("ANALYZER_ELASTIC", "http://127.0.0.1:9200"))
         delta_7h = timedelta(hours=7)
-        doc = {
-            "cpu": used_cpu * 100,
-            "ram": used_ram * 100,
-            "timestamp": datetime.now() - delta_7h
-        }
+        phan_tai = get_env("PHAN_TAI", "false") == "true"
+        if phan_tai:
+            doc = {
+                "cpu": used_cpu / 2 * 100,
+                "ram": used_ram / 2 * 100,
+                "timestamp": datetime.now() - delta_7h
+            }
+        else:
+            doc = {
+                "cpu": used_cpu * 100,
+                "ram": used_ram * 100,
+                "timestamp": datetime.now() - delta_7h
+            }
         es_index = get_env("ANALYZER_ELASTIC_INDEX", "cpu_ram")
         if not es.indices.exists(index=es_index):
             es.indices.create(index=es_index)
@@ -3991,8 +4001,13 @@ def send_cpu_ram_to_local_redis():
         used_ram = round(psutil.virtual_memory()[2]/100,4)
         used_cpu = round(psutil.cpu_percent()/100,4)
         r = redis.Redis(host=get_env("ANALYZER_REDIS_HOST", "127.0.0.1"), port=int(get_env("ANALYZER_REDIS_PORT", 6379)), db=0)
-        r.set("cpu", used_cpu * 100)
-        r.set("ram", used_ram * 100)
+        phan_tai = get_env("PHAN_TAI", "false") == "true"
+        if phan_tai:
+            r.set("cpu", used_cpu / 2 * 100)
+            r.set("ram", used_ram / 2 * 100)
+        else:
+            r.set("cpu", used_cpu * 100)
+            r.set("ram", used_ram * 100)
     except Exception as e:
         logger.error(e)
 
@@ -4002,12 +4017,21 @@ def send_cpu_ram_to_center_elastic():
         used_cpu = round(psutil.cpu_percent()/100,4)
         es = Elasticsearch(get_env("CENTER_ELASTIC", "http://127.0.0.1:9200"))
         delta_7h = timedelta(hours=7)
-        doc = {
-            "cpu": used_cpu * 100,
-            "ram": used_ram * 100,
-            "analyzer_ip": get_env("ANALYZER_IP_LOCAL", "127.0.0.1"),
-            "timestamp": datetime.now() - delta_7h
-        }
+        phan_tai = get_env("PHAN_TAI", "false") == "true"
+        if phan_tai:
+            doc = {
+                "cpu": used_cpu / 2 * 100,
+                "ram": used_ram / 2 * 100,
+                "analyzer_ip": get_env("ANALYZER_IP_LOCAL", "127.0.0.1"),
+                "timestamp": datetime.now() - delta_7h
+            }
+        else:
+            doc = {
+                "cpu": used_cpu * 100,
+                "ram": used_ram * 100,
+                "analyzer_ip": get_env("ANALYZER_IP_LOCAL", "127.0.0.1"),
+                "timestamp": datetime.now() - delta_7h
+            }
         es_index = get_env("CENTER_ELASTIC_INDEX", "cpu_ram")
         if not es.indices.exists(index=es_index):
             es.indices.create(index=es_index)
@@ -4020,10 +4044,17 @@ def send_cpu_ram_to_center_redis():
         used_ram = round(psutil.virtual_memory()[2]/100,4)
         used_cpu = round(psutil.cpu_percent()/100,4)
         r = redis.Redis(host=get_env("CENTER_REDIS_HOST", "127.0.0.1"), port=int(get_env("CENTER_REDIS_PORT", 6379)), db=0)
-        doc = {
-            "cpu": used_cpu * 100,
-            "ram": used_ram * 100,
-        }
+        phan_tai = get_env("PHAN_TAI", "false") == "true"
+        if phan_tai:
+            doc = {
+                "cpu": used_cpu / 2 * 100,
+                "ram": used_ram / 2 * 100,
+            }
+        else:
+            doc = {
+                "cpu": used_cpu * 100,
+                "ram": used_ram * 100,
+            }
         redis_index = "cpu_ram_" + get_env("ANALYZER_IP_LOCAL", "127.0.0.1")
         r.set(redis_index, json.dumps(doc))
     except Exception as e:
@@ -4060,38 +4091,40 @@ def get_best_analyzer():
         logger.error(e)
         
 def start_phan_tai():
-    phan_tai = get_env("PHAN_TAI", "false") == "true"
-    while(phan_tai):
-        entries = os.listdir("./tmp")
-        print(entries)
-        files = [entry for entry in entries if (os.path.isfile(f"./tmp/{entry}") and entry != ".gitkeep")]
-        print("=======================[ Start tim file ]=>", files, "=======================")
-        if len(files) > 0:
-            file = files[0]
-            print("=======================[ XU LY ]=>", file, "=======================")
-            os.system(f"sshpass -p CSrcGNXnnv6U scp -o StrictHostKeyChecking=no ./tmp/{file} ubuntu@192.168.10.73:/home/ubuntu/Desktop/datn-tung/analyzer/backend/tmp")
-            print("=======================[ PCAP TO JSON ]=>", file, "=======================")
-            os.remove(f"./tmp/{file}")
-        phan_tai = get_env("PHAN_TAI", "false") == "true"
-        time.sleep(10)
-    # sftp = SftpRequest.SftpRequest("192.168.10.73", "foo", "pass", "2222")
-    # sftp.download_file("/home/ubuntu/Desktop/datn-tung/analyzer/abc.xxx", "./tmp/abc.axxx")
-    print("________________PHAN TAI DEN ")
+    # phan_tai = get_env("PHAN_TAI", "false") == "true"
+    # while(phan_tai):
+    #     entries = os.listdir("./tmp")
+    #     print(entries)
+    #     files = [entry for entry in entries if (os.path.isfile(f"./tmp/{entry}") and entry != ".gitkeep")]
+    #     print("=======================[ Start tim file ]=>", files, "=======================")
+    #     if len(files) > 0:
+    #         file = files[0]
+    #         print("=======================[ XU LY ]=>", file, "=======================")
+    #         os.system(f"sshpass -p CSrcGNXnnv6U scp -o StrictHostKeyChecking=no ./tmp/{file} ubuntu@192.168.10.73:/home/ubuntu/Desktop/datn-tung/analyzer/backend/tmp")
+    #         print("=======================[ PCAP TO JSON ]=>", file, "=======================")
+    #         os.remove(f"./tmp/{file}")
+    #     phan_tai = get_env("PHAN_TAI", "false") == "true"
+    #     time.sleep(10)
+    # # sftp = SftpRequest.SftpRequest("192.168.10.73", "foo", "pass", "2222")
+    # # sftp.download_file("/home/ubuntu/Desktop/datn-tung/analyzer/abc.xxx", "./tmp/abc.axxx")
+    # print("________________PHAN TAI DEN ")
+    pass
 
 def stop_phan_tai():
-    update_env("PHAN_TAI", "false")
-    print("________________DUNG PHAN TAI ")
+    # update_env("PHAN_TAI", "false")
+    # print("________________DUNG PHAN TAI ")
+    pass
 
 def check_phan_tai():
     try:
         used_ram = round(psutil.virtual_memory()[2]/100,4)
         used_cpu = round(psutil.cpu_percent()/100,4)
         phan_tai = get_env("PHAN_TAI", "false") == "true"
-        # if (used_cpu > 90 or used_ram > 90) and not phan_tai:
-        if phan_tai:
-            stop_extract_pcap()
-            threading.Thread(target=start_phan_tai).start()
-        elif (used_cpu <= 90 and used_ram <= 90):
-            stop_phan_tai()
+        # # if (used_cpu > 90 or used_ram > 90) and not phan_tai:
+        # if phan_tai:
+        #     stop_extract_pcap()
+        #     threading.Thread(target=start_phan_tai).start()
+        # elif (used_cpu <= 90 and used_ram <= 90):
+        #     stop_phan_tai()
     except Exception as e:
         logger.error(e)
