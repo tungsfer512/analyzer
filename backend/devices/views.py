@@ -3895,18 +3895,18 @@ class DashboardView(APIView):
             logger.error(e)
             return Response(data={'status': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-def start_extract_pcap():
-    try:
-        update_env("EXTRACT_PCAP", "true")
-        threading.Thread(target=extract_pcap.start_extract).start()
-    except Exception as e:
-        logger.error(e)
+# def start_extract_pcap():
+#     try:
+#         update_env("EXTRACT_PCAP", "true")
+#         threading.Thread(target=extract_pcap.start_extract).start()
+#     except Exception as e:
+#         logger.error(e)
 
-def stop_extract_pcap():
-    try:
-        update_env("EXTRACT_PCAP", "false")
-    except Exception as e:
-        logger.error(e)
+# def stop_extract_pcap():
+#     try:
+#         update_env("EXTRACT_PCAP", "false")
+#     except Exception as e:
+#         logger.error(e)
 
 class DashboardStartTracePcapView(APIView):
     serializer_class = DevicesSerializer
@@ -3920,9 +3920,11 @@ class DashboardStartTracePcapView(APIView):
             trace_pcap = get_env("TRACE_PCAP", "false") == "true"
 
             # for _ in range(int(get_env("ANALYZER_PCAP_THREAD_NUMBER", 10))):
-            for _ in range(100):
-                threading.Thread(target=capture.cap, args=(get_env("ANALYZER_INF", "wlp7s0"), int(get_env("ANALYZER_PCAP_NUMBER", 1000)))).start()
-                time.sleep(1)
+            # for _ in range(100):
+                # time.sleep(1)
+            threading.Thread(target=capture.cap, args=(get_env("ANALYZER_INF", "wlp7s0"), int(get_env("ANALYZER_PCAP_NUMBER", 1000)))).start()
+            # time.sleep(10)
+            threading.Thread(target=capture.cap_2).start()
             # start_extract_pcap()
             return Response(data={
                 'device_counts': 0,
@@ -3977,18 +3979,18 @@ def send_cpu_ram_to_local_elastic():
         es = Elasticsearch(get_env("ANALYZER_ELASTIC", "http://127.0.0.1:9200"))
         delta_7h = timedelta(hours=7)
         phan_tai = get_env("PHAN_TAI", "false") == "true"
-        if phan_tai:
-            doc = {
-                "cpu": used_cpu / 2 * 100,
-                "ram": used_ram / 2 * 100,
-                "timestamp": datetime.now() - delta_7h
-            }
-        else:
-            doc = {
-                "cpu": used_cpu * 100,
-                "ram": used_ram * 100,
-                "timestamp": datetime.now() - delta_7h
-            }
+        # if phan_tai:
+        #     doc = {
+        #         "cpu": used_cpu / 2 * 100,
+        #         "ram": used_ram / 2 * 100,
+        #         "timestamp": datetime.now() - delta_7h
+        #     }
+        # else:
+        doc = {
+            "cpu": used_cpu * 100,
+            "ram": used_ram * 100,
+            "timestamp": datetime.now() - delta_7h
+        }
         es_index = get_env("ANALYZER_ELASTIC_INDEX", "cpu_ram")
         if not es.indices.exists(index=es_index):
             es.indices.create(index=es_index)
@@ -4002,12 +4004,12 @@ def send_cpu_ram_to_local_redis():
         used_cpu = round(psutil.cpu_percent()/100,4)
         r = redis.Redis(host=get_env("ANALYZER_REDIS_HOST", "127.0.0.1"), port=int(get_env("ANALYZER_REDIS_PORT", 6379)), db=0)
         phan_tai = get_env("PHAN_TAI", "false") == "true"
-        if phan_tai:
-            r.set("cpu", used_cpu / 2 * 100)
-            r.set("ram", used_ram / 2 * 100)
-        else:
-            r.set("cpu", used_cpu * 100)
-            r.set("ram", used_ram * 100)
+        # if phan_tai:
+        #     r.set("cpu", used_cpu / 2 * 100)
+        #     r.set("ram", used_ram / 2 * 100)
+        # else:
+        r.set("cpu", used_cpu * 100)
+        r.set("ram", used_ram * 100)
     except Exception as e:
         logger.error(e)
 
@@ -4018,20 +4020,20 @@ def send_cpu_ram_to_center_elastic():
         es = Elasticsearch(get_env("CENTER_ELASTIC", "http://127.0.0.1:9200"))
         delta_7h = timedelta(hours=7)
         phan_tai = get_env("PHAN_TAI", "false") == "true"
-        if phan_tai:
-            doc = {
-                "cpu": used_cpu / 2 * 100,
-                "ram": used_ram / 2 * 100,
-                "analyzer_ip": get_env("ANALYZER_IP_LOCAL", "127.0.0.1"),
-                "timestamp": datetime.now() - delta_7h
-            }
-        else:
-            doc = {
-                "cpu": used_cpu * 100,
-                "ram": used_ram * 100,
-                "analyzer_ip": get_env("ANALYZER_IP_LOCAL", "127.0.0.1"),
-                "timestamp": datetime.now() - delta_7h
-            }
+        # if phan_tai:
+        #     doc = {
+        #         "cpu": used_cpu / 2 * 100,
+        #         "ram": used_ram / 2 * 100,
+        #         "analyzer_ip": get_env("ANALYZER_IP_LOCAL", "127.0.0.1"),
+        #         "timestamp": datetime.now() - delta_7h
+        #     }
+        # else:
+        doc = {
+            "cpu": used_cpu * 100,
+            "ram": used_ram * 100,
+            "analyzer_ip": get_env("ANALYZER_IP_LOCAL", "127.0.0.1"),
+            "timestamp": datetime.now() - delta_7h
+        }
         es_index = get_env("CENTER_ELASTIC_INDEX", "cpu_ram")
         if not es.indices.exists(index=es_index):
             es.indices.create(index=es_index)
@@ -4045,16 +4047,16 @@ def send_cpu_ram_to_center_redis():
         used_cpu = round(psutil.cpu_percent()/100,4)
         r = redis.Redis(host=get_env("CENTER_REDIS_HOST", "127.0.0.1"), port=int(get_env("CENTER_REDIS_PORT", 6379)), db=0)
         phan_tai = get_env("PHAN_TAI", "false") == "true"
-        if phan_tai:
-            doc = {
-                "cpu": used_cpu / 2 * 100,
-                "ram": used_ram / 2 * 100,
-            }
-        else:
-            doc = {
-                "cpu": used_cpu * 100,
-                "ram": used_ram * 100,
-            }
+        # if phan_tai:
+        #     doc = {
+        #         "cpu": used_cpu / 2 * 100,
+        #         "ram": used_ram / 2 * 100,
+        #     }
+        # else:
+        doc = {
+            "cpu": used_cpu * 100,
+            "ram": used_ram * 100,
+        }
         redis_index = "cpu_ram_" + get_env("ANALYZER_IP_LOCAL", "127.0.0.1")
         r.set(redis_index, json.dumps(doc))
     except Exception as e:
@@ -4089,7 +4091,7 @@ def get_best_analyzer():
             print(json.dumps(weights), type(json.dumps(weights)))
     except Exception as e:
         logger.error(e)
-        
+
 def start_phan_tai():
     # phan_tai = get_env("PHAN_TAI", "false") == "true"
     # while(phan_tai):
@@ -4110,17 +4112,17 @@ def start_phan_tai():
     # print("________________PHAN TAI DEN ")
     pass
 
-def stop_phan_tai():
-    # update_env("PHAN_TAI", "false")
-    # print("________________DUNG PHAN TAI ")
-    pass
 
 def check_phan_tai():
     try:
         used_ram = round(psutil.virtual_memory()[2]/100,4)
         used_cpu = round(psutil.cpu_percent()/100,4)
         phan_tai = get_env("PHAN_TAI", "false") == "true"
-        # # if (used_cpu > 90 or used_ram > 90) and not phan_tai:
+        if (used_cpu > 75 or used_ram > 90) and phan_tai == False:
+            update_env("PHAN_TAI", "true")
+        else: 
+            update_env("PHAN_TAI", "false")
+            # threading.Thread(target=start_phan_tai).start()
         # if phan_tai:
         #     stop_extract_pcap()
         #     threading.Thread(target=start_phan_tai).start()
