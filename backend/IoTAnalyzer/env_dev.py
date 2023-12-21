@@ -32,6 +32,7 @@ def set_env():
     r.set("TRACE_PCAP", "false")
     r.set("EXTRACT_PCAP", "false")
     r.set("PHAN_TAI", "false")
+    r.set("PHAN_TAI_NGUONG", "false")
     r.set("USER_SFTP", "foo")
     r.set("PASS_SFTP", "pass")
     r.set("PORT_SFTP", "2222")
