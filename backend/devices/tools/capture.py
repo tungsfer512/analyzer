@@ -10,6 +10,7 @@ import math
 from devices import extract_pcap
 import json
 import redis
+import multiprocessing
 
 
 def filename_gen(inf):
@@ -83,56 +84,70 @@ def cap(inf, pkt_count):
                 filename,
                 "=======================",
             )
-            threading.Thread(
-                target=extract_pcap.start_extract, args=(filename,)
-            ).start()
+            # threading.Thread(
+            #     target=extract_pcap.start_extract, args=(filename,)
+            # ).start()
+            processes = []
+            for _ in range(2):
+                p = multiprocessing.Process(
+                    target=extract_pcap.start_extract, args=(filename,)
+                )
+                p.start()
+                processes.append(p)
+
+            # for _ in range(9):
+            #     p = multiprocessing.Process(target=cpu_bound_task_2, args=(10000000,))
+            #     p.start()
+            #     processes.append(p)
+
+            # for p in processes:
+            #     p.join()
         # time.sleep(5)
 
 
-import multiprocessing
+# def cpu_bound_task(number):
+#     result = 0
+#     trace_pcap = get_env("TRACE_PCAP", "false") == "true"
+#     while trace_pcap:
+#         for i in range(number):
+#             for j in range(number):
+#                 trace_pcap = get_env("TRACE_PCAP", "false") == "true"
+#                 if trace_pcap == False:
+#                     break
+#                 result += i * j
+#             if trace_pcap == False:
+#                 break
+#         result = 0
 
 
-def cpu_bound_task(number):
-    result = 0
-    trace_pcap = get_env("TRACE_PCAP", "false") == "true"
-    while trace_pcap:
-        for i in range(number):
-            for j in range(number):
-                trace_pcap = get_env("TRACE_PCAP", "false") == "true"
-                if trace_pcap == False:
-                    break
-                result += i * j
-            if trace_pcap == False:
-                break
-        result = 0
+# def cpu_bound_task_2(number):
+#     result = 0
+#     trace_pcap = get_env("TRACE_PCAP", "false") == "true"
+#     phan_tai_nguong = get_env("PHAN_TAI_NGUONG", "false") == "false"
+#     while trace_pcap == True and phan_tai_nguong == True:
+#         for i in range(number):
+#             for j in range(number):
+#                 trace_pcap = get_env("TRACE_PCAP", "false") == "true"
+#                 phan_tai_nguong = get_env("PHAN_TAI_NGUONG", "false") == "false"
+#                 if trace_pcap == False or phan_tai_nguong == False:
+#                     break
+#                 result += i * j
+#             if trace_pcap == False or phan_tai_nguong == False:
+#                 break
+#         result = 0
 
-def cpu_bound_task_2(number):
-    result = 0
-    trace_pcap = get_env("TRACE_PCAP", "false") == "true"
-    phan_tai_nguong = get_env("PHAN_TAI_NGUONG", "false") == "false"
-    while trace_pcap == True and phan_tai_nguong == True:
-        for i in range(number):
-            for j in range(number):
-                trace_pcap = get_env("TRACE_PCAP", "false") == "true"
-                phan_tai_nguong = get_env("PHAN_TAI_NGUONG", "false") == "false"
-                if trace_pcap == False or phan_tai_nguong == False:
-                    break
-                result += i * j
-            if trace_pcap == False or phan_tai_nguong == False:
-                break
-        result = 0
 
-def cap_2():
-    processes = []
-    for _ in range(3):
-        p = multiprocessing.Process(target=cpu_bound_task, args=(10000000,))
-        p.start()
-        processes.append(p)
+# def cap_2():
+#     processes = []
+#     for _ in range(3):
+#         p = multiprocessing.Process(target=cpu_bound_task, args=(10000000,))
+#         p.start()
+#         processes.append(p)
 
-    for _ in range(9):
-        p = multiprocessing.Process(target=cpu_bound_task_2, args=(10000000,))
-        p.start()
-        processes.append(p)
+#     for _ in range(9):
+#         p = multiprocessing.Process(target=cpu_bound_task_2, args=(10000000,))
+#         p.start()
+#         processes.append(p)
 
-    for p in processes:
-        p.join()
+#     for p in processes:
+#         p.join()

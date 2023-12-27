@@ -8,4 +8,5 @@ def start_extract(filename):
     print("=======================[ XU LY ]=>", filename, "=======================")
     extract(f"./tmp/{filename}.pcap", f"./tmp/extract/{filename}.json", format="json")
     print("=======================[ PCAP TO JSON ]=>", filename, "=======================")
-    os.remove(f"./tmp/{filename}.pcap")
+    if os.path.exists(f"./tmp/{filename}.pcap"):
+        os.remove(f"./tmp/{filename}.pcap")

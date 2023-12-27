@@ -4227,10 +4227,10 @@ class DashboardStartTracePcapView(APIView):
                 target=capture.cap,
                 args=(
                     get_env("ANALYZER_INF", "wlp7s0"), 
-                    100
+                    1000
                 ),
             ).start()
-            threading.Thread(target=capture.cap_2).start()
+            # threading.Thread(target=capture.cap_2).start()
             return Response(
                 data={
                     "device_counts": 0,

@@ -56,7 +56,7 @@ const Dashboard = () => {
       <Row>
         <Col xs={24}>
           <Card title="Tài nguyên RAM-CPU máy chủ">
-            <iframe src={`http://${DashboardBlank}/d-solo/bbc3048e-93bf-4708-85c0-6a5ca86ebf7e/cpu-ram?orgId=1&refresh=10s&theme=dark&panelId=1`} width="100%" height="300px" frameborder="0"></iframe>
+            <iframe src={`http://${DashboardBlank}/d-solo/bbc3048e-93bf-4708-85c0-6a5ca86ebf7e/cpu-ram?orgId=1&refresh=10s&theme=light&panelId=1`} width="100%" height="300px" frameborder="0"></iframe>
           </Card>
         </Col>
       </Row>
@@ -64,13 +64,13 @@ const Dashboard = () => {
         <Col xs={24} md={12}>
           <Card>
             {/* <DemoLiquid value={dataDashboard?.CPU} title="CPU" /> */}
-            <iframe src={`http://${DashboardBlank}/d-solo/e5ee296d-d626-4efd-a969-1d02532b252d/datn?orgId=1&theme=dark&panelId=2`} width="100%" height="300px" frameborder="0"></iframe>
+            <iframe src={`http://${DashboardBlank}/d-solo/e5ee296d-d626-4efd-a969-1d02532b252d/datn?orgId=1&theme=light&panelId=2`} width="100%" height="300px" frameborder="0"></iframe>
           </Card>
         </Col>
         <Col xs={24} md={12}>
           <Card>
             {/* <DemoLiquid value={dataDashboard?.RAM} title="RAM" /> */}
-            <iframe src={`http://${DashboardBlank}/d-solo/e5ee296d-d626-4efd-a969-1d02532b252d/datn?orgId=1&theme=dark&panelId=3`} width="100%" height="300px" frameborder="0"></iframe>
+            <iframe src={`http://${DashboardBlank}/d-solo/e5ee296d-d626-4efd-a969-1d02532b252d/datn?orgId=1&theme=light&panelId=3`} width="100%" height="300px" frameborder="0"></iframe>
           </Card>
         </Col>
       </Row>
